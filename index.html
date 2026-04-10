@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leitor Corporativo ICCID/LPA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f7f8;
+      --sidebar: #0b0f10;
+      --card: #ffffff;
+      --border: #e3e8ea;
+      --text: #0f1720;
+      --muted: #6b7280;
+      --primary: #00a8a8;
+      --primary-hover: #008b8b;
+      --primary-soft: #e6f7f7;
+      --radius: 12px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(180deg,#f4f7f8,#ffffff);
+      color: var(--text);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh;
+    }
+
+    .header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .content {
+      padding: 24px;
+      display: grid;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .card:hover {
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 16px;
+    }
+
+    .metric {
+      background: var(--primary-soft);
+      padding: 16px;
+      border-radius: var(--radius);
+    }
+
+    .metric strong {
+      font-size: 22px;
+    }
+
+    .drop {
+      border: 2px dashed var(--primary);
+      padding: 40px;
+      text-align: center;
+      border-radius: var(--radius);
+      background: var(--primary-soft);
+      cursor: pointer;
+    }
+
+    .drop:hover {
+      transform: translateY(-3px);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    th {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    tr:hover {
+      background: var(--primary-soft);
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .search {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #fff;
+    }
+
+    .status-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .tag {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tag.ok { background: var(--primary-soft); color: var(--primary); }
+    .tag.warn { background: #fff4e5; color: #b45309; }
+    .tag.err { background: #fee2e2; color: #b91c1c; }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+    }
+
+    @media (max-width: 900px) {
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <main>
+      <div class="header">
+        <h2>Leitor ICCID / LPA</h2>
+        <button class="btn btn-primary" id="btnExportar">Exportar CSV</button>
+      </div>
+
+      <div class="content">
+        <section class="card">
+          <h3 style="margin-bottom:12px;">Upload de arquivos</h3>
+          <div class="drop" id="dropArea" tabindex="0" role="button" aria-label="Área para selecionar PDFs e ZIPs">
+            <input id="fileInput" type="file" accept=".pdf,.zip,application/pdf,application/zip" multiple style="display:none">
+            Arraste PDFs ou ZIP aqui<br>
+            <small style="color:var(--muted)">ou clique para selecionar</small>
+          </div>
+          <div class="toolbar">
+            <button class="btn btn-primary" id="btnSelecionar" type="button">Selecionar arquivos</button>
+            <button class="btn" id="btnExemplo" type="button">Carregar dados de exemplo</button>
+            <button class="btn" id="btnLimpar" type="button">Limpar</button>
+          </div>
+        </section>
+
+        <div class="metrics">
+          <div class="metric">
+            <strong id="mTotal">0</strong>
+            <div>Arquivos</div>
+          </div>
+          <div class="metric">
+            <strong id="mSucesso">0</strong>
+            <div>Sucesso</div>
+          </div>
+          <div class="metric">
+            <strong id="mFalhas">0</strong>
+            <div>Falhas</div>
+          </div>
+        </div>
+
+        <section class="card">
+          <h3 style="margin-bottom:12px;">Status do processamento</h3>
+          <div class="status-list" id="statusList">
+            <div class="empty">Nenhum arquivo carregado ainda.</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3 style="margin-bottom:12px;">Resultados</h3>
+          <div style="overflow:auto">
+            <table aria-label="Tabela de resultados">
+              <thead>
+                <tr>
+                  <th>Arquivo</th>
+                  <th>ICCID</th>
+                  <th>Código LPA</th>
+                  <th>Origem</th>
+                  <th>Status</th>
+                  <th>Mensagem</th>
+                </tr>
+              </thead>
+              <tbody id="resultsBody">
+                <tr>
+                  <td colspan="6" class="empty">Os dados aparecerão aqui após o processamento.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3 style="margin-bottom:12px;">Filtros</h3>
+          <input class="search" id="searchInput" type="search" placeholder="Ex.: 8910, LPA:1$, erro..." aria-label="Buscar nos resultados">
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script type="module">
+    import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.3.136/build/pdf.min.mjs';
+    import QrScanner from 'https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.min.js';
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.3.136/build/pdf.worker.min.mjs';
+    QrScanner.WORKER_PATH = 'https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner-worker.min.js';
+
+    const state = { results: [], processing: false };
+
+    const els = {
+      fileInput: document.getElementById('fileInput'),
+      dropArea: document.getElementById('dropArea'),
+      btnSelecionar: document.getElementById('btnSelecionar'),
+      btnExportar: document.getElementById('btnExportar'),
+      btnLimpar: document.getElementById('btnLimpar'),
+      btnExemplo: document.getElementById('btnExemplo'),
+      statusList: document.getElementById('statusList'),
+      resultsBody: document.getElementById('resultsBody'),
+      searchInput: document.getElementById('searchInput'),
+      mTotal: document.getElementById('mTotal'),
+      mSucesso: document.getElementById('mSucesso'),
+      mFalhas: document.getElementById('mFalhas')
+    };
+
+    function updateMetrics() {
+      const total = state.results.length;
+      const sucesso = state.results.filter(r => r.status === 'Sucesso').length;
+      const falhas = total - sucesso;
+      els.mTotal.textContent = String(total);
+      els.mSucesso.textContent = String(sucesso);
+      els.mFalhas.textContent = String(falhas);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[m]));
+    }
+
+    function iccidFromFileName(name) {
+      return name.replace(/\.pdf$/i, '').replace(/-qrcode$/i, '').trim();
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? '');
+      return /[;"\n]/.test(text) ? '"' + text.replaceAll('"', '""') + '"' : text;
+    }
+
+    function normalizeLpa(text) {
+      if (!text) return '';
+      const trimmed = String(text).trim();
+      const match = trimmed.match(/LPA:[^\s]+/i);
+      return match ? match[0] : trimmed;
+    }
+
+    async function extractPdfFromZip(file) {
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      const pdfEntries = Object.values(zip.files).filter(entry => !entry.dir && /\.pdf$/i.test(entry.name));
+      const files = [];
+      for (const entry of pdfEntries) {
+        const blob = await entry.async('blob');
+        files.push(new File([blob], entry.name.split('/').pop(), { type: 'application/pdf' }));
+      }
+      return files;
+    }
+
+    async function renderPageToCanvas(page, scale = 2) {
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      await page.render({ canvasContext: context, viewport }).promise;
+      return canvas;
+    }
+
+    async function decodeQrFromPdf(file) {
+      const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      for (let pageNo = 1; pageNo <= Math.min(pdf.numPages, 5); pageNo += 1) {
+        const page = await pdf.getPage(pageNo);
+        for (const scale of [2, 2.8, 3.5]) {
+          const canvas = await renderPageToCanvas(page, scale);
+          try {
+            const result = await QrScanner.scanImage(canvas, {
+              returnDetailedScanResult: true,
+              highlightScanRegion: false,
+              highlightCodeOutline: false
+            });
+            if (result?.data) return result.data;
+          } catch (_) {}
+        }
+      }
+      throw new Error('QR code não encontrado nas primeiras páginas do PDF');
+    }
+
+    function renderStatus() {
+      if (!state.results.length) {
+        els.statusList.innerHTML = '<div class="empty">Nenhum arquivo carregado ainda.</div>';
+        return;
+      }
+      els.statusList.innerHTML = state.results.map(r => {
+        const klass = r.status === 'Sucesso' ? 'ok' : (r.status === 'Aviso' ? 'warn' : 'err');
+        return `
+          <div class="status-item">
+            <div>
+              <strong>${escapeHtml(r.arquivo)}</strong>
+              <div style="font-size:12px;color:var(--muted)">${escapeHtml(r.mensagem || '')}</div>
+            </div>
+            <span class="tag ${klass}">${escapeHtml(r.status)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTable() {
+      const term = els.searchInput.value.trim().toLowerCase();
+      const rows = state.results.filter(r => !term || Object.values(r).some(v => String(v ?? '').toLowerCase().includes(term)));
+      if (!rows.length) {
+        els.resultsBody.innerHTML = '<tr><td colspan="6" class="empty">Nenhum resultado para o filtro informado.</td></tr>';
+        return;
+      }
+      els.resultsBody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${escapeHtml(r.arquivo)}</td>
+          <td>${escapeHtml(r.iccid)}</td>
+          <td>${escapeHtml(r.codigo_lpa || '')}</td>
+          <td>${escapeHtml(r.origem)}</td>
+          <td>${escapeHtml(r.status)}</td>
+          <td>${escapeHtml(r.mensagem || '')}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function processFiles(inputFiles) {
+      if (!inputFiles?.length || state.processing) return;
+      state.processing = true;
+
+      const expanded = [];
+      for (const file of inputFiles) {
+        if (/\.zip$/i.test(file.name)) {
+          const inner = await extractPdfFromZip(file);
+          inner.forEach(pdf => expanded.push({ file: pdf, origem: `ZIP: ${file.name}` }));
+        } else if (/\.pdf$/i.test(file.name)) {
+          expanded.push({ file, origem: 'PDF' });
+        }
+      }
+
+      for (const item of expanded) {
+        const row = {
+          arquivo: item.file.name,
+          iccid: iccidFromFileName(item.file.name),
+          codigo_lpa: '',
+          origem: item.origem,
+          status: 'Processando',
+          mensagem: 'Lendo QR code...'
+        };
+
+        state.results.push(row);
+        renderStatus();
+        renderTable();
+        updateMetrics();
+
+        try {
+          const decoded = await decodeQrFromPdf(item.file);
+          row.codigo_lpa = normalizeLpa(decoded);
+          row.status = 'Sucesso';
+          row.mensagem = 'QR code lido com sucesso';
+        } catch (error) {
+          row.status = 'Erro';
+          row.mensagem = error?.message || 'Falha ao ler o QR code';
+        }
+
+        renderStatus();
+        renderTable();
+        updateMetrics();
+      }
+
+      state.processing = false;
+    }
+
+    function exportCsv() {
+      if (!state.results.length) {
+        alert('Não há dados para exportar.');
+        return;
+      }
+      const headers = ['arquivo','iccid','codigo_lpa','origem','status','mensagem'];
+      const lines = [
+        headers.join(';'),
+        ...state.results.map(row => headers.map(h => csvEscape(row[h])).join(';'))
+      ];
+      const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio-iccid-lpa-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function resetApp() {
+      state.results = [];
+      els.fileInput.value = '';
+      els.searchInput.value = '';
+      renderStatus();
+      renderTable();
+      updateMetrics();
+    }
+
+    els.btnSelecionar.addEventListener('click', () => els.fileInput.click());
+    els.dropArea.addEventListener('click', () => els.fileInput.click());
+    els.dropArea.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        els.fileInput.click();
+      }
+    });
+
+    els.fileInput.addEventListener('change', e => processFiles(Array.from(e.target.files || [])));
+
+    ['dragenter','dragover'].forEach(evt => {
+      els.dropArea.addEventListener(evt, e => {
+        e.preventDefault();
+        els.dropArea.classList.add('dragover');
+      });
+    });
+
+    ['dragleave','drop'].forEach(evt => {
+      els.dropArea.addEventListener(evt, e => {
+        e.preventDefault();
+        if (evt === 'drop') processFiles(Array.from(e.dataTransfer.files || []));
+        els.dropArea.classList.remove('dragover');
+      });
+    });
+
+    els.btnExportar.addEventListener('click', exportCsv);
+    els.btnLimpar.addEventListener('click', resetApp);
+    els.searchInput.addEventListener('input', renderTable);
+
+    els.btnExemplo.addEventListener('click', () => {
+      state.results = [
+        {
+          arquivo: '8912345678901234567.pdf',
+          iccid: '8912345678901234567',
+          codigo_lpa: 'LPA:1$sm-v4-017-a-gtm.pr.go-esim.com$043338-1A43A0D3D6D1A543D2F0F4C2B303D1C0',
+          origem: 'PDF',
+          status: 'Sucesso',
+          mensagem: 'QR code lido com sucesso'
+        },
+        {
+          arquivo: '8912345678901234568.pdf',
+          iccid: '8.912345678901235e+18',
+          codigo_lpa: '',
+          origem: 'ZIP: lote-abril.zip',
+          status: 'Erro',
+          mensagem: 'QR code não encontrado nas primeiras páginas do PDF'
+        }
+      ];
+      renderStatus();
+      renderTable();
+      updateMetrics();
+    });
+
+    renderStatus();
+    renderTable();
+    updateMetrics();
+  </script>
+</body>
+</html>
